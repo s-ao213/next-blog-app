@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faSpinner,
@@ -10,6 +10,7 @@ import {
 import { twMerge } from "tailwind-merge";
 import { Category } from "@/app/_types/Category";
 import Link from "next/link";
+import { useAuth } from "@/app/_hooks/useAuth";
 
 type CategoryApiResponse = {
   id: string;
@@ -19,16 +20,25 @@ type CategoryApiResponse = {
 };
 
 const Page: React.FC = () => {
+  const { token, session, isLoading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [fetchErrorMsg, setFetchErrorMsg] = useState<string | null>(null);
   const [categories, setCategories] = useState<Category[] | null>(null);
 
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
+    if (!token) {
+      setFetchErrorMsg("認証情報が見つかりません");
+      return;
+    }
+
     try {
       setIsLoading(true);
       const res = await fetch("/api/categories", {
         method: "GET",
         cache: "no-store",
+        headers: {
+          Authorization: token,
+        } as HeadersInit,
       });
 
       if (!res.ok) {
@@ -53,13 +63,20 @@ const Page: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
-    fetchCategories();
-  }, []);
+    if (!authLoading) {
+      fetchCategories();
+    }
+  }, [authLoading, fetchCategories]);
 
   const handleDelete = async (categoryId: string) => {
+    if (!token) {
+      window.alert("認証情報が見つかりません");
+      return;
+    }
+
     if (!window.confirm("このカテゴリを削除してもよろしいですか？")) {
       return;
     }
@@ -68,6 +85,9 @@ const Page: React.FC = () => {
       const res = await fetch(`/api/admin/categories/${categoryId}`, {
         method: "DELETE",
         cache: "no-store",
+        headers: {
+          Authorization: token,
+        } as HeadersInit,
       });
 
       if (!res.ok) {
@@ -85,7 +105,7 @@ const Page: React.FC = () => {
     }
   };
 
-  if (isLoading) {
+  if (authLoading || isLoading) {
     return (
       <div className="text-gray-500">
         <FontAwesomeIcon icon={faSpinner} className="mr-1 animate-spin" />

@@ -11,6 +11,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import Link from "next/link";
 import Image from "next/image";
+import { useAuth } from "@/app/_hooks/useAuth";
 
 type Category = {
   id: string;
@@ -37,12 +38,24 @@ export default function EditPostPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const { token, session, isLoading: authLoading } = useAuth();
 
   useEffect(() => {
     const fetchData = async () => {
+      if (!token) {
+        setError("認証情報が見つかりません");
+        setIsLoading(false);
+        return;
+      }
+
       try {
         // カテゴリ一覧の取得
-        const categoriesResponse = await fetch("/api/admin/categories");
+        const categoriesResponse = await fetch("/api/admin/categories", {
+          headers: {
+            Authorization: token,
+          } as HeadersInit,
+        });
+
         if (!categoriesResponse.ok) {
           throw new Error("カテゴリの取得に失敗しました");
         }
@@ -50,7 +63,11 @@ export default function EditPostPage() {
         setCategories(categoriesData);
 
         // 投稿データの取得
-        const postResponse = await fetch(`/api/admin/posts/${postId}`);
+        const postResponse = await fetch(`/api/admin/posts/${postId}`, {
+          headers: {
+            Authorization: token,
+          } as HeadersInit,
+        });
         if (!postResponse.ok) {
           throw new Error("投稿データの取得に失敗しました");
         }
@@ -70,12 +87,14 @@ export default function EditPostPage() {
       }
     };
 
-    fetchData();
-  }, [postId]);
+    if (!authLoading) {
+      fetchData();
+    }
+  }, [postId, token, authLoading]);
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !token) return;
 
     // ファイルサイズチェック（5MB以下）
     if (file.size > 5 * 1024 * 1024) {
@@ -89,6 +108,9 @@ export default function EditPostPage() {
 
       const response = await fetch("/api/admin/upload", {
         method: "POST",
+        headers: {
+          Authorization: token,
+        } as HeadersInit,
         body: formData,
       });
 
@@ -106,7 +128,7 @@ export default function EditPostPage() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!post || !previewImage) return;
+    if (!post || !previewImage || !token) return;
 
     setIsSaving(true);
     try {
@@ -115,6 +137,7 @@ export default function EditPostPage() {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
+          Authorization: token,
         },
         body: JSON.stringify({
           title: formData.get("title"),
@@ -138,7 +161,7 @@ export default function EditPostPage() {
     }
   };
 
-  if (isLoading) {
+  if (authLoading || isLoading) {
     return (
       <div className="flex items-center text-gray-500">
         <FontAwesomeIcon icon={faSpinner} className="mr-2 animate-spin" />
