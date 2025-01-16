@@ -10,6 +10,7 @@ import {
   faArrowLeft,
 } from "@fortawesome/free-solid-svg-icons";
 import Link from "next/link";
+import Image from "next/image";
 
 type Category = {
   id: string;
@@ -194,10 +195,13 @@ export default function EditPostPage() {
           <div className="mt-1 flex items-center space-x-4">
             <div className="relative size-32 overflow-hidden rounded-lg">
               {previewImage && (
-                <img
+                <Image
+                  className="w-1/2 border-2 border-gray-300"
                   src={previewImage}
-                  alt="Cover preview"
-                  className="size-full object-cover"
+                  alt="プレビュー画像"
+                  width={1024}
+                  height={1024}
+                  priority
                 />
               )}
             </div>

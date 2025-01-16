@@ -6,7 +6,6 @@ import { faSpinner } from "@fortawesome/free-solid-svg-icons";
 import { twMerge } from "tailwind-merge";
 import { useAuth } from "@/app/_hooks/useAuth";
 
-// カテゴリをフェッチしたときのレスポンスのデータ型
 type CategoryApiResponse = {
   id: string;
   name: string;
@@ -14,14 +13,12 @@ type CategoryApiResponse = {
   updatedAt: string;
 };
 
-// 投稿記事のカテゴリ選択用のデータ型
 type SelectableCategory = {
   id: string;
   name: string;
   isSelect: boolean;
 };
 
-// 投稿記事の新規作成のページ
 const Page: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -30,37 +27,40 @@ const Page: React.FC = () => {
   const [newTitle, setNewTitle] = useState("");
   const [newContent, setNewContent] = useState("");
   const [newCoverImageURL, setNewCoverImageURL] = useState("");
-  const [newCoverImageKey, setNewCoverImageKey] = useState("hoge"); // ◀ 追加
+  const [newCoverImageKey, setNewCoverImageKey] = useState("hoge");
 
   const router = useRouter();
-  const { token } = useAuth();
+  const { token, session, isLoading: authLoading } = useAuth();
 
-  // カテゴリ配列 (State)。取得中と取得失敗時は null、既存カテゴリが0個なら []
   const [checkableCategories, setCheckableCategories] = useState<
     SelectableCategory[] | null
   >(null);
 
-  // コンポーネントがマウントされたとき (初回レンダリングのとき) に1回だけ実行
+  // 認証状態チェック
   useEffect(() => {
-    // ウェブAPI (/api/categories) からカテゴリの一覧をフェッチする関数の定義
+    if (!authLoading && !session) {
+      router.push("/login"); // ログインページへリダイレクト
+    }
+  }, [session, authLoading, router]);
+
+  // カテゴリ取得
+  useEffect(() => {
     const fetchCategories = async () => {
+      if (!session) return; // 未認証の場合は実行しない
+
       try {
         setIsLoading(true);
-
-        // フェッチ処理の本体
         const requestUrl = "/api/categories";
         const res = await fetch(requestUrl, {
           method: "GET",
           cache: "no-store",
         });
 
-        // レスポンスのステータスコードが200以外の場合 (カテゴリのフェッチに失敗した場合)
         if (!res.ok) {
           setCheckableCategories(null);
-          throw new Error(`${res.status}: ${res.statusText}`); // -> catch節に移動
+          throw new Error(`${res.status}: ${res.statusText}`);
         }
 
-        // レスポンスのボディをJSONとして読み取りカテゴリ配列 (State) にセット
         const apiResBody = (await res.json()) as CategoryApiResponse[];
         setCheckableCategories(
           apiResBody.map((body) => ({
@@ -77,15 +77,13 @@ const Page: React.FC = () => {
         console.error(errorMsg);
         setFetchErrorMsg(errorMsg);
       } finally {
-        // 成功した場合も失敗した場合もローディング状態を解除
         setIsLoading(false);
       }
     };
 
     fetchCategories();
-  }, []);
+  }, [session]);
 
-  // チェックボックスの状態 (State) を更新する関数
   const switchCategoryState = (categoryId: string) => {
     if (!checkableCategories) return;
 
@@ -99,30 +97,25 @@ const Page: React.FC = () => {
   };
 
   const updateNewTitle = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // ここにタイトルのバリデーション処理を追加する
     setNewTitle(e.target.value);
   };
 
   const updateNewContent = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    // ここに本文のバリデーション処理を追加する
     setNewContent(e.target.value);
   };
 
   const updateNewCoverImageURL = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // ここにカバーイメージURLのバリデーション処理を追加する
     setNewCoverImageURL(e.target.value);
   };
 
-  //
   const updateNewCoverImage = (e: React.ChangeEvent<HTMLInputElement>) => {};
 
-  // フォームの送信処理
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // ▼ 追加: トークンが取得できない場合はアラートを表示して処理中断
-    if (!token) {
-      window.alert("予期せぬ動作：トークンが取得できません。");
+    if (!token || !session) {
+      window.alert("認証が必要です。ログインしてください。");
+      router.push("/login");
       return;
     }
 
@@ -138,24 +131,26 @@ const Page: React.FC = () => {
           : [],
       };
       const requestUrl = "/api/admin/posts";
-      console.log(`${requestUrl} => ${JSON.stringify(requestBody, null, 2)}`);
       const res = await fetch(requestUrl, {
         method: "POST",
         cache: "no-store",
         headers: {
           "Content-Type": "application/json",
-          Authorization: token, // ◀ 追加
+          Authorization: token,
         },
         body: JSON.stringify(requestBody),
       });
 
       if (!res.ok) {
-        throw new Error(`${res.status}: ${res.statusText}`); // -> catch節に移動
+        if (res.status === 401) {
+          throw new Error("認証が失効しました。再度ログインしてください。");
+        }
+        throw new Error(`${res.status}: ${res.statusText}`);
       }
 
       const postResponse = await res.json();
       setIsSubmitting(false);
-      router.push(`/posts/${postResponse.id}`); // 投稿記事の詳細ページに移動
+      router.push(`/posts/${postResponse.id}`);
     } catch (error) {
       const errorMsg =
         error instanceof Error
@@ -164,8 +159,32 @@ const Page: React.FC = () => {
       console.error(errorMsg);
       window.alert(errorMsg);
       setIsSubmitting(false);
+
+      // 認証エラーの場合はログインページへリダイレクト
+      if (error instanceof Error && error.message.includes("認証")) {
+        router.push("/login");
+      }
     }
   };
+
+  // 認証チェック中の表示
+  if (authLoading) {
+    return (
+      <div className="text-gray-500">
+        <FontAwesomeIcon icon={faSpinner} className="mr-1 animate-spin" />
+        認証を確認中...
+      </div>
+    );
+  }
+
+  // 認証済みでない場合の表示（通常はuseEffectでリダイレクトされるため表示されない）
+  if (!session) {
+    return (
+      <div className="text-red-500">
+        このページにアクセスするには認証が必要です。
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -231,7 +250,7 @@ const Page: React.FC = () => {
           />
         </div>
 
-        <div className="space-y-1">
+        {/* <div className="space-y-1">
           <label htmlFor="coverImageURL" className="block font-bold">
             カバーイメージ (URL)
           </label>
@@ -245,8 +264,8 @@ const Page: React.FC = () => {
             placeholder="カバーイメージのURLを記入してください"
             required
           />
-        </div>
-
+        </div> */}
+        {/* 
         <div className="space-y-1">
           <label htmlFor="coverImageKey" className="block font-bold">
             カバーイメージ (Key)
@@ -261,7 +280,7 @@ const Page: React.FC = () => {
             readOnly
             required
           />
-        </div>
+        </div> */}
 
         <input
           type="file"
