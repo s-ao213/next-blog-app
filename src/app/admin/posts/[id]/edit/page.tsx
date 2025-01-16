@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, ChangeEvent } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -12,6 +12,8 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/app/_hooks/useAuth";
+import { supabase } from "@/utils/supabase";
+import CryptoJS from "crypto-js";
 
 type Category = {
   id: string;
@@ -26,10 +28,17 @@ type Post = {
   categories: Category[];
 };
 
+const calculateMD5Hash = async (file: File): Promise<string> => {
+  const buffer = await file.arrayBuffer();
+  const wordArray = CryptoJS.lib.WordArray.create(buffer);
+  return CryptoJS.MD5(wordArray).toString();
+};
+
 export default function EditPostPage() {
   const router = useRouter();
   const params = useParams();
   const postId = params.id as string;
+  const hiddenFileInputRef = useRef<HTMLInputElement>(null);
 
   const [post, setPost] = useState<Post | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -37,7 +46,8 @@ export default function EditPostPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
+  const [coverImageKey, setCoverImageKey] = useState<string | undefined>();
   const { token, session, isLoading: authLoading } = useAuth();
 
   useEffect(() => {
@@ -76,7 +86,7 @@ export default function EditPostPage() {
         setSelectedCategories(
           postData.categories.map((cat: Category) => cat.id)
         );
-        setPreviewImage(postData.coverImageURL);
+        setCoverImageUrl(postData.coverImageURL);
       } catch (e) {
         setError(
           e instanceof Error ? e.message : "予期せぬエラーが発生しました"
@@ -92,9 +102,13 @@ export default function EditPostPage() {
     }
   }, [postId, token, authLoading]);
 
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    const bucketName = "cover_image";
+    setCoverImageKey(undefined);
+    setCoverImageUrl(null);
+
     const file = e.target.files?.[0];
-    if (!file || !token) return;
+    if (!file) return;
 
     // ファイルサイズチェック（5MB以下）
     if (file.size > 5 * 1024 * 1024) {
@@ -103,23 +117,21 @@ export default function EditPostPage() {
     }
 
     try {
-      const formData = new FormData();
-      formData.append("image", file);
+      const fileHash = await calculateMD5Hash(file);
+      const path = `private/${fileHash}`;
+      const { data, error } = await supabase.storage
+        .from(bucketName)
+        .upload(path, file, { upsert: true });
 
-      const response = await fetch("/api/admin/upload", {
-        method: "POST",
-        headers: {
-          Authorization: token,
-        } as HeadersInit,
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error("画像のアップロードに失敗しました");
+      if (error || !data) {
+        throw new Error(`アップロードに失敗 ${error.message}`);
       }
 
-      const data = await response.json();
-      setPreviewImage(data.url);
+      setCoverImageKey(data.path);
+      const publicUrlResult = supabase.storage
+        .from(bucketName)
+        .getPublicUrl(data.path);
+      setCoverImageUrl(publicUrlResult.data.publicUrl);
     } catch (e) {
       alert("画像のアップロードに失敗しました");
       console.error("Error uploading image:", e);
@@ -128,7 +140,7 @@ export default function EditPostPage() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!post || !previewImage || !token) return;
+    if (!post || !coverImageUrl || !token) return;
 
     setIsSaving(true);
     try {
@@ -142,7 +154,7 @@ export default function EditPostPage() {
         body: JSON.stringify({
           title: formData.get("title"),
           content: formData.get("content"),
-          coverImageURL: previewImage,
+          coverImageURL: coverImageUrl,
           categoryIds: selectedCategories,
         }),
       });
@@ -217,10 +229,10 @@ export default function EditPostPage() {
           </label>
           <div className="mt-1 flex items-center space-x-4">
             <div className="relative size-32 overflow-hidden rounded-lg">
-              {previewImage && (
+              {coverImageUrl && (
                 <Image
                   className="w-1/2 border-2 border-gray-300"
-                  src={previewImage}
+                  src={coverImageUrl}
                   alt="プレビュー画像"
                   width={1024}
                   height={1024}
@@ -228,16 +240,21 @@ export default function EditPostPage() {
                 />
               )}
             </div>
-            <label className="flex cursor-pointer items-center rounded-md bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              hidden={true}
+              ref={hiddenFileInputRef}
+            />
+            <button
+              type="button"
+              onClick={() => hiddenFileInputRef.current?.click()}
+              className="flex cursor-pointer items-center rounded-md bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            >
               <FontAwesomeIcon icon={faImage} className="mr-2" />
               画像を選択
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="hidden"
-              />
-            </label>
+            </button>
           </div>
         </div>
 

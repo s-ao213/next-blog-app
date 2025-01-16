@@ -1,10 +1,13 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, ChangeEvent, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSpinner } from "@fortawesome/free-solid-svg-icons";
 import { twMerge } from "tailwind-merge";
 import { useAuth } from "@/app/_hooks/useAuth";
+import CryptoJS from "crypto-js";
+import Image from "next/image";
+import { supabase } from "@/utils/supabase";
 
 type CategoryApiResponse = {
   id: string;
@@ -19,6 +22,12 @@ type SelectableCategory = {
   isSelect: boolean;
 };
 
+const calculateMD5Hash = async (file: File): Promise<string> => {
+  const buffer = await file.arrayBuffer();
+  const wordArray = CryptoJS.lib.WordArray.create(buffer);
+  return CryptoJS.MD5(wordArray).toString();
+};
+
 const Page: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -26,8 +35,9 @@ const Page: React.FC = () => {
 
   const [newTitle, setNewTitle] = useState("");
   const [newContent, setNewContent] = useState("");
-  const [newCoverImageURL, setNewCoverImageURL] = useState("");
-  const [newCoverImageKey, setNewCoverImageKey] = useState("hoge");
+  const hiddenFileInputRef = useRef<HTMLInputElement>(null);
+  const bucketName = "cover_image";
+  const [coverImageUrl, setCoverImageUrl] = useState<string | undefined>();
 
   const router = useRouter();
   const { token, session, isLoading: authLoading } = useAuth();
@@ -36,17 +46,15 @@ const Page: React.FC = () => {
     SelectableCategory[] | null
   >(null);
 
-  // 認証状態チェック
   useEffect(() => {
     if (!authLoading && !session) {
-      router.push("/login"); // ログインページへリダイレクト
+      router.push("/login");
     }
   }, [session, authLoading, router]);
 
-  // カテゴリ取得
   useEffect(() => {
     const fetchCategories = async () => {
-      if (!session) return; // 未認証の場合は実行しない
+      if (!session) return;
 
       try {
         setIsLoading(true);
@@ -104,11 +112,25 @@ const Page: React.FC = () => {
     setNewContent(e.target.value);
   };
 
-  const updateNewCoverImageURL = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setNewCoverImageURL(e.target.value);
-  };
+  const handleImageChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files?.[0];
+    const fileHash = await calculateMD5Hash(file);
+    const path = `private/${fileHash}`;
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .upload(path, file, { upsert: true });
 
-  const updateNewCoverImage = (e: React.ChangeEvent<HTMLInputElement>) => {};
+    if (error || !data) {
+      window.alert(`アップロードに失敗 ${error.message}`);
+      return;
+    }
+
+    const publicUrlResult = supabase.storage
+      .from(bucketName)
+      .getPublicUrl(data.path);
+    setCoverImageUrl(publicUrlResult.data.publicUrl);
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -125,7 +147,7 @@ const Page: React.FC = () => {
       const requestBody = {
         title: newTitle,
         content: newContent,
-        coverImageURL: newCoverImageURL,
+        coverImageURL: coverImageUrl,
         categoryIds: checkableCategories
           ? checkableCategories.filter((c) => c.isSelect).map((c) => c.id)
           : [],
@@ -160,14 +182,12 @@ const Page: React.FC = () => {
       window.alert(errorMsg);
       setIsSubmitting(false);
 
-      // 認証エラーの場合はログインページへリダイレクト
       if (error instanceof Error && error.message.includes("認証")) {
         router.push("/login");
       }
     }
   };
 
-  // 認証チェック中の表示
   if (authLoading) {
     return (
       <div className="text-gray-500">
@@ -177,7 +197,6 @@ const Page: React.FC = () => {
     );
   }
 
-  // 認証済みでない場合の表示（通常はuseEffectでリダイレクトされるため表示されない）
   if (!session) {
     return (
       <div className="text-red-500">
@@ -250,44 +269,39 @@ const Page: React.FC = () => {
           />
         </div>
 
-        {/* <div className="space-y-1">
-          <label htmlFor="coverImageURL" className="block font-bold">
-            カバーイメージ (URL)
-          </label>
-          <input
-            type="url"
-            id="coverImageURL"
-            name="coverImageURL"
-            className="w-full rounded-md border-2 px-2 py-1"
-            value={newCoverImageURL}
-            onChange={updateNewCoverImageURL}
-            placeholder="カバーイメージのURLを記入してください"
-            required
-          />
-        </div> */}
-        {/* 
         <div className="space-y-1">
-          <label htmlFor="coverImageKey" className="block font-bold">
-            カバーイメージ (Key)
+          <label htmlFor="coverImage" className="block font-bold">
+            カバーイメージ
           </label>
           <input
-            type="url"
-            id="coverImageKey"
-            name="coverImageKey"
-            className="w-full rounded-md border-2 px-2 py-1 text-gray-500"
-            value={newCoverImageKey}
-            disabled
-            readOnly
-            required
+            type="file"
+            id="coverImage"
+            accept="image/*"
+            onChange={handleImageChange}
+            hidden
+            ref={hiddenFileInputRef}
           />
-        </div> */}
+          <button
+            onClick={() => hiddenFileInputRef.current?.click()}
+            type="button"
+            className="rounded-md bg-indigo-500 px-3 py-1 text-white"
+          >
+            ファイルを選択
+          </button>
 
-        <input
-          type="file"
-          id="coverImage"
-          onChange={updateNewCoverImage}
-          accept="image/*"
-        />
+          {coverImageUrl && (
+            <div className="mt-2">
+              <Image
+                className="w-1/2 border-2 border-gray-300"
+                src={coverImageUrl}
+                alt="プレビュー画像"
+                width={1024}
+                height={1024}
+                priority
+              />
+            </div>
+          )}
+        </div>
 
         <div className="space-y-1">
           <div className="font-bold">タグ</div>
