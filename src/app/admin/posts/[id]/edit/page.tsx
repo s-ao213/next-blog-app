@@ -24,7 +24,7 @@ type Post = {
   id: string;
   title: string;
   content: string;
-  coverImageURL: string;
+  coverImageKey: string; // ここを変更
   categories: Category[];
 };
 
@@ -46,8 +46,10 @@ export default function EditPostPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
-  const [coverImageKey, setCoverImageKey] = useState<string | undefined>();
+  const [coverImagePreviewUrl, setCoverImagePreviewUrl] = useState<
+    string | null
+  >(null);
+  const [coverImageKey, setCoverImageKey] = useState<string | null>(null);
   const { token, session, isLoading: authLoading } = useAuth();
 
   useEffect(() => {
@@ -86,7 +88,12 @@ export default function EditPostPage() {
         setSelectedCategories(
           postData.categories.map((cat: Category) => cat.id)
         );
-        setCoverImageUrl(postData.coverImageURL);
+        setCoverImageKey(postData.coverImageKey);
+        // プレビュー表示用にURLを取得
+        const publicUrlResult = supabase.storage
+          .from("cover_image")
+          .getPublicUrl(postData.coverImageKey);
+        setCoverImagePreviewUrl(publicUrlResult.data.publicUrl);
       } catch (e) {
         setError(
           e instanceof Error ? e.message : "予期せぬエラーが発生しました"
@@ -104,13 +111,12 @@ export default function EditPostPage() {
 
   const handleImageChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const bucketName = "cover_image";
-    setCoverImageKey(undefined);
-    setCoverImageUrl(null);
+    setCoverImageKey(null);
+    setCoverImagePreviewUrl(null);
 
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // ファイルサイズチェック（5MB以下）
     if (file.size > 5 * 1024 * 1024) {
       alert("ファイルサイズは5MB以下にしてください");
       return;
@@ -128,10 +134,11 @@ export default function EditPostPage() {
       }
 
       setCoverImageKey(data.path);
+      // プレビュー表示用にURLを取得
       const publicUrlResult = supabase.storage
         .from(bucketName)
         .getPublicUrl(data.path);
-      setCoverImageUrl(publicUrlResult.data.publicUrl);
+      setCoverImagePreviewUrl(publicUrlResult.data.publicUrl);
     } catch (e) {
       alert("画像のアップロードに失敗しました");
       console.error("Error uploading image:", e);
@@ -140,7 +147,7 @@ export default function EditPostPage() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!post || !coverImageUrl || !token) return;
+    if (!post || !coverImageKey || !token) return;
 
     setIsSaving(true);
     try {
@@ -154,7 +161,7 @@ export default function EditPostPage() {
         body: JSON.stringify({
           title: formData.get("title"),
           content: formData.get("content"),
-          coverImageURL: coverImageUrl,
+          coverImageKey: coverImageKey, // ここを変更
           categoryIds: selectedCategories,
         }),
       });
@@ -229,10 +236,10 @@ export default function EditPostPage() {
           </label>
           <div className="mt-1 flex items-center space-x-4">
             <div className="relative size-32 overflow-hidden rounded-lg">
-              {coverImageUrl && (
+              {coverImagePreviewUrl && (
                 <Image
                   className="w-1/2 border-2 border-gray-300"
-                  src={coverImageUrl}
+                  src={coverImagePreviewUrl} // ここを変更
                   alt="プレビュー画像"
                   width={1024}
                   height={1024}

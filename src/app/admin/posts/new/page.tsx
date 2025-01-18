@@ -37,8 +37,10 @@ const Page: React.FC = () => {
   const [newContent, setNewContent] = useState("");
   const hiddenFileInputRef = useRef<HTMLInputElement>(null);
   const bucketName = "cover_image";
-  const [coverImageUrl, setCoverImageUrl] = useState<string | undefined>();
-
+  const [coverImageKey, setCoverImageKey] = useState<string | undefined>();
+  const [coverImagePreviewUrl, setCoverImagePreviewUrl] = useState<
+    string | undefined
+  >();
   const router = useRouter();
   const { token, session, isLoading: authLoading } = useAuth();
 
@@ -126,10 +128,12 @@ const Page: React.FC = () => {
       return;
     }
 
+    setCoverImageKey(data.path);
+    // プレビュー表示用にURLを取得
     const publicUrlResult = supabase.storage
       .from(bucketName)
       .getPublicUrl(data.path);
-    setCoverImageUrl(publicUrlResult.data.publicUrl);
+    setCoverImagePreviewUrl(publicUrlResult.data.publicUrl); // ここを変更
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -147,7 +151,7 @@ const Page: React.FC = () => {
       const requestBody = {
         title: newTitle,
         content: newContent,
-        coverImageURL: coverImageUrl,
+        coverImageKey: coverImageKey, // ここを変更
         categoryIds: checkableCategories
           ? checkableCategories.filter((c) => c.isSelect).map((c) => c.id)
           : [],
@@ -289,11 +293,11 @@ const Page: React.FC = () => {
             ファイルを選択
           </button>
 
-          {coverImageUrl && (
+          {coverImagePreviewUrl && (
             <div className="mt-2">
               <Image
                 className="w-1/2 border-2 border-gray-300"
-                src={coverImageUrl}
+                src={coverImagePreviewUrl} // ここを変更
                 alt="プレビュー画像"
                 width={1024}
                 height={1024}

@@ -6,10 +6,17 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSpinner } from "@fortawesome/free-solid-svg-icons";
 import Image from "next/image";
 import DOMPurify from "isomorphic-dompurify";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 const Page: React.FC = () => {
   const [post, setPost] = useState<Post | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const { id } = useParams() as { id: string };
 
   useEffect(() => {
@@ -28,6 +35,14 @@ const Page: React.FC = () => {
         const data = await response.json();
         console.log(JSON.stringify(data, null, 2)); // 取得したデータを確認
         setPost(data as Post);
+
+        // 画像のURLを取得
+        if (data.coverImageKey) {
+          const { data: publicUrl } = supabase.storage
+            .from("images") // バケット名を適切なものに変更してください
+            .getPublicUrl(data.coverImageKey);
+          setImageUrl(publicUrl.publicUrl);
+        }
       } catch (e) {
         setFetchError(
           e instanceof Error ? e.message : "予期せぬエラーが発生しました"
@@ -58,13 +73,13 @@ const Page: React.FC = () => {
     <main>
       <div className="space-y-2">
         <div className="mb-2 text-2xl font-bold">{post.title}</div>
-        {post.coverImage && (
+        {imageUrl && (
           <div>
             <Image
-              src={post.coverImage.url}
+              src={imageUrl}
               alt={post.title}
-              width={post.coverImage.width}
-              height={post.coverImage.height}
+              width={800} // 適切なサイズに調整してください
+              height={400} // 適切なサイズに調整してください
               priority
               className="rounded-xl"
             />

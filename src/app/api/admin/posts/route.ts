@@ -1,4 +1,5 @@
-import { supabase } from "@/utils/supabase"; // ◀ 追加
+// route.ts
+import { supabase } from "@/utils/supabase";
 import prisma from "@/lib/prisma";
 import { NextResponse, NextRequest } from "next/server";
 import { Post } from "@prisma/client";
@@ -6,13 +7,12 @@ import { Post } from "@prisma/client";
 type RequestBody = {
   title: string;
   content: string;
-  coverImageURL: string;
+  coverImageKey: string; // ◀ Changed from coverImageURL
   categoryIds: string[];
 };
 
 export async function GET(req: NextRequest) {
   try {
-    // 投稿一覧を取得（カテゴリ情報も含める）
     const posts = await prisma.post.findMany({
       include: {
         categories: {
@@ -26,14 +26,13 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    // クライアントの型定義に合わせてデータを整形
     const formattedPosts = posts.map((post) => ({
       id: post.id,
       title: post.title,
       content: post.content,
       coverImage: {
-        url: post.coverImageURL,
-        width: 800, // これらは実際の画像サイズに応じて動的に設定する必要があります
+        key: post.coverImageKey, // ◀ Changed from coverImageURL
+        width: 800,
         height: 600,
       },
       categories: post.categories.map((pc) => ({
@@ -55,16 +54,14 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  // JWTトークンの検証・認証 (失敗したら 401 Unauthorized を返す)
   const token = req.headers.get("Authorization") ?? "";
   const { data, error } = await supabase.auth.getUser(token);
   if (error)
     return NextResponse.json({ error: error.message }, { status: 401 });
   try {
     const requestBody: RequestBody = await req.json();
-    const { title, content, coverImageURL, categoryIds } = requestBody;
+    const { title, content, coverImageKey, categoryIds } = requestBody; // ◀ Changed from coverImageURL
 
-    // カテゴリの存在確認
     const categories = await prisma.category.findMany({
       where: {
         id: {
@@ -80,14 +77,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // トランザクションを使用して投稿とカテゴリの関連付けを一括で行う
     const newPost = await prisma.$transaction(async (tx) => {
-      // 投稿を作成
       const post = await tx.post.create({
         data: {
           title,
           content,
-          coverImageURL,
+          coverImageKey, // ◀ Changed from coverImageURL
           categories: {
             create: categoryIds.map((categoryId) => ({
               categoryId,
@@ -106,13 +101,12 @@ export async function POST(req: NextRequest) {
       return post;
     });
 
-    // クライアントの型定義に合わせてレスポンスを整形
     const formattedPost = {
       id: newPost.id,
       title: newPost.title,
       content: newPost.content,
       coverImage: {
-        url: newPost.coverImageURL,
+        key: newPost.coverImageKey, // ◀ Changed from coverImageURL
         width: 800,
         height: 600,
       },
