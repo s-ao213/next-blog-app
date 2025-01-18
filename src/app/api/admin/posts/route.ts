@@ -4,6 +4,8 @@ import prisma from "@/lib/prisma";
 import { NextResponse, NextRequest } from "next/server";
 import { Post } from "@prisma/client";
 
+export const revalidate = 0; // ◀ サーバサイドのキャッシュを無効化
+
 type RequestBody = {
   title: string;
   content: string;

@@ -2,6 +2,8 @@ import prisma from "@/lib/prisma";
 import { NextResponse, NextRequest } from "next/server";
 import { supabase } from "@/utils/supabase"; // ◀ 追加
 
+export const revalidate = 0; // ◀ サーバサイドのキャッシュを無効化
+
 export async function GET(req: NextRequest) {
   try {
     const categories = await prisma.category.findMany({

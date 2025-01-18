@@ -5,6 +5,8 @@ import { Post } from "@prisma/client";
 import { useAuth } from "@/app/_hooks/useAuth";
 import { supabase } from "@/utils/supabase";
 
+export const revalidate = 0; // ◀ サーバサイドのキャッシュを無効化
+
 type RouteParams = {
   params: {
     id: string;

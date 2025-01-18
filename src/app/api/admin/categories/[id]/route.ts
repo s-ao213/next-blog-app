@@ -14,6 +14,8 @@ type RequestBody = {
   name: string;
 };
 
+export const revalidate = 0; // ◀ サーバサイドのキャッシュを無効化
+
 export const PUT = async (req: NextRequest, routeParams: RouteParams) => {
   const token = req.headers.get("Authorization") ?? "";
   const { data, error } = await supabase.auth.getUser(token);
