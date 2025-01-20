@@ -41,7 +41,6 @@ const PostSummary: React.FC<Props> = (props) => {
           dangerouslySetInnerHTML={{ __html: safeHTML }}
         />
       </Link>
-      ;
     </div>
   );
 };
