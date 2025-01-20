@@ -17,76 +17,105 @@ const Page: React.FC = () => {
   const [post, setPost] = useState<Post | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const { id } = useParams() as { id: string };
 
   useEffect(() => {
-    const fetchPosts = async () => {
+    const fetchPost = async () => {
       try {
-        const requestUrl = `/api/posts/${id}`;
-        const response = await fetch(requestUrl, {
-          method: "GET",
-          cache: "no-store",
-        });
+        setIsLoading(true);
+        const response = await fetch(`/api/posts/${id}`);
 
         if (!response.ok) {
-          throw new Error("データの取得に失敗しました");
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const data = await response.json();
-        console.log(JSON.stringify(data, null, 2)); // 取得したデータを確認
-        setPost(data as Post);
+        setPost(data);
 
-        // 画像のURLを取得
+        // 画像URLの取得をシンプルに
         if (data.coverImageKey) {
-          const { data: publicUrl } = supabase.storage
-            .from("images") // バケット名を適切なものに変更してください
+          const {
+            data: { publicUrl },
+          } = supabase.storage
+            .from("cover_image")
             .getPublicUrl(data.coverImageKey);
-          setImageUrl(publicUrl.publicUrl);
+
+          setImageUrl(publicUrl);
+          setImageError(null);
         }
-      } catch (e) {
+      } catch (error) {
+        console.error("Error fetching post:", error);
         setFetchError(
-          e instanceof Error ? e.message : "予期せぬエラーが発生しました"
+          error instanceof Error
+            ? error.message
+            : "予期せぬエラーが発生しました"
         );
+      } finally {
+        setIsLoading(false);
       }
     };
-    fetchPosts();
+
+    fetchPost();
   }, [id]);
 
-  if (fetchError) {
-    return <div>{fetchError}</div>;
-  }
-
-  if (!post) {
+  if (isLoading) {
     return (
-      <div className="text-gray-500">
-        <FontAwesomeIcon icon={faSpinner} className="mr-1 animate-spin" />
-        Loading...
+      <div className="flex items-center justify-center p-4">
+        <FontAwesomeIcon icon={faSpinner} className="mr-2 animate-spin" />
+        <span>読み込み中...</span>
       </div>
     );
   }
 
+  if (fetchError) {
+    return (
+      <div className="rounded-lg bg-red-50 p-4 text-red-500">
+        <p className="font-bold">エラーが発生しました</p>
+        <p>{fetchError}</p>
+      </div>
+    );
+  }
+
+  if (!post) {
+    return <div className="p-4 text-gray-500">記事が見つかりません</div>;
+  }
+
   const safeHTML = DOMPurify.sanitize(post.content, {
-    ALLOWED_TAGS: ["b", "strong", "i", "em", "u", "br"],
+    ALLOWED_TAGS: ["b", "strong", "i", "em", "u", "br", "p"],
+    ALLOWED_ATTR: ["class"],
   });
 
   return (
-    <main>
-      <div className="space-y-2">
-        <div className="mb-2 text-2xl font-bold">{post.title}</div>
+    <main className="mx-auto max-w-4xl p-4">
+      <article className="space-y-6">
+        <h1 className="text-3xl font-bold">{post.title}</h1>
+
+        {imageError && (
+          <div className="rounded-lg bg-red-50 p-4 text-red-500">
+            {imageError}
+          </div>
+        )}
+
         {imageUrl && (
-          <div>
+          <div className="relative aspect-video w-full overflow-hidden rounded-xl">
             <Image
               src={imageUrl}
               alt={post.title}
-              width={800} // 適切なサイズに調整してください
-              height={400} // 適切なサイズに調整してください
+              fill
               priority
-              className="rounded-xl"
+              className="object-cover"
+              onError={() => setImageError("画像の読み込みに失敗しました")}
             />
           </div>
         )}
-        <div dangerouslySetInnerHTML={{ __html: safeHTML }} />
-      </div>
+
+        <div
+          className="prose max-w-none"
+          dangerouslySetInnerHTML={{ __html: safeHTML }}
+        />
+      </article>
     </main>
   );
 };

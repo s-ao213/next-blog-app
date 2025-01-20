@@ -32,11 +32,7 @@ const Page: React.FC = () => {
             id: rawPost.id,
             title: rawPost.title,
             content: rawPost.content,
-            coverImage: {
-              url: rawPost.coverImageKey,
-              width: 1000,
-              height: 1000,
-            },
+            coverImageKey: rawPost.coverImageKey, // coverImage オブジェクトではなく直接 coverImageKey を使用
             createdAt: rawPost.createdAt,
             categories: rawPost.categories.map(
               (categoryWrapper: {

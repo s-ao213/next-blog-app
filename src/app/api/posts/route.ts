@@ -13,6 +13,7 @@ export const GET = async (req: NextRequest) => {
         title: true,
         content: true,
         createdAt: true,
+        coverImageKey: true, // ここを追加
         categories: {
           select: {
             category: {
