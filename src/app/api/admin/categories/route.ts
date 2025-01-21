@@ -24,19 +24,20 @@ export async function GET(req: NextRequest) {
 
 // カテゴリの新規作成
 export async function POST(req: NextRequest) {
-  const token = req.headers.get("Authorization") ?? "";
+  // Bearer トークンから実際のトークンを取り出す
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const token = authHeader.replace("Bearer ", "");
+
   const { data, error } = await supabase.auth.getUser(token);
-  if (error)
+  if (error) {
     return NextResponse.json({ error: error.message }, { status: 401 });
+  }
+
   try {
     const { name } = await req.json();
-
     const category = await prisma.category.create({
-      data: {
-        name,
-      },
+      data: { name },
     });
-
     return NextResponse.json(category);
   } catch (error) {
     console.error("Failed to create category:", error);

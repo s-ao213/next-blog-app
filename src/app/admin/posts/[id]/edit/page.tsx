@@ -1,5 +1,5 @@
+// src/app/api/posts/[id]/edit/page.tsx
 "use client";
-
 import { useState, useEffect, useRef, ChangeEvent } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";

@@ -1,3 +1,4 @@
+//src/app/admin/categories/page.tsx
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -11,6 +12,7 @@ import { twMerge } from "tailwind-merge";
 import { Category } from "@/app/_types/Category";
 import Link from "next/link";
 import { useAuth } from "@/app/_hooks/useAuth";
+import { supabase } from "@/utils/supabase";
 
 type CategoryApiResponse = {
   id: string;
@@ -32,12 +34,21 @@ const Page: React.FC = () => {
     }
 
     try {
+      // セッション確認
+      const {
+        data: { session: currentSession },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+      if (sessionError || !currentSession) {
+        throw new Error("認証セッションの取得に失敗しました");
+      }
+
       setIsLoading(true);
       const res = await fetch("/api/categories", {
         method: "GET",
         cache: "no-store",
         headers: {
-          Authorization: token,
+          Authorization: `Bearer ${currentSession.access_token}`,
         } as HeadersInit,
       });
 
@@ -72,8 +83,17 @@ const Page: React.FC = () => {
   }, [authLoading, fetchCategories]);
 
   const handleDelete = async (categoryId: string) => {
-    if (!token) {
+    if (!session) {
       window.alert("認証情報が見つかりません");
+      return;
+    }
+
+    const {
+      data: { session: currentSession },
+      error: sessionError,
+    } = await supabase.auth.getSession();
+    if (sessionError || !currentSession) {
+      window.alert("認証セッションの取得に失敗しました");
       return;
     }
 

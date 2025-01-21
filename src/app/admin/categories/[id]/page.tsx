@@ -1,3 +1,4 @@
+// src/app/admin/categories/[id]/page.tsx
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -9,6 +10,7 @@ import {
 import { twMerge } from "tailwind-merge";
 import { Category } from "@/app/_types/Category";
 import { useAuth } from "@/app/_hooks/useAuth";
+import { supabase } from "@/utils/supabase";
 
 type CategoryApiResponse = {
   id: string;
@@ -33,18 +35,26 @@ const Page: React.FC = () => {
   const router = useRouter();
 
   const fetchCategories = useCallback(async () => {
-    if (!token) {
+    if (!session) {
       setFetchErrorMsg("認証情報が見つかりません");
       return;
     }
 
     try {
+      const {
+        data: { session: currentSession },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+      if (sessionError || !currentSession) {
+        throw new Error("認証セッションの取得に失敗しました");
+      }
+
       setIsLoading(true);
       const res = await fetch("/api/categories", {
         method: "GET",
         cache: "no-store",
         headers: {
-          Authorization: token,
+          Authorization: `Bearer ${currentSession.access_token}`,
         } as HeadersInit,
       });
 
@@ -72,7 +82,7 @@ const Page: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [token]);
+  }, [session]);
 
   const handleNewCategoryNameChange = (
     e: React.ChangeEvent<HTMLInputElement>
@@ -107,8 +117,17 @@ const Page: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!token) {
+    if (!session) {
       window.alert("認証情報が見つかりません");
+      return;
+    }
+
+    const {
+      data: { session: currentSession },
+      error: sessionError,
+    } = await supabase.auth.getSession();
+    if (sessionError || !currentSession) {
+      window.alert("認証セッションの取得に失敗しました");
       return;
     }
 
