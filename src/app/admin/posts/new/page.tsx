@@ -118,7 +118,7 @@ const Page: React.FC = () => {
     if (!e.target.files || e.target.files.length === 0) return;
     const file = e.target.files?.[0];
     const fileHash = await calculateMD5Hash(file);
-    const path = `private/${fileHash}`;
+    const path = `${fileHash}`; // ここを変更
     const { data, error } = await supabase.storage
       .from(bucketName)
       .upload(path, file, { upsert: true });

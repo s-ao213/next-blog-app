@@ -55,6 +55,60 @@ export async function GET(req: NextRequest) {
   }
 }
 
+export async function DELETE(req: NextRequest) {
+  const token = req.headers.get("Authorization") ?? "";
+  const { data, error } = await supabase.auth.getUser(token);
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 401 });
+  }
+
+  // URLからpostIdを取得
+  const url = new URL(req.url);
+  const postId = url.searchParams.get("id");
+
+  if (!postId) {
+    return NextResponse.json(
+      { error: "投稿IDが指定されていません" },
+      { status: 400 }
+    );
+  }
+
+  try {
+    // まず投稿が存在するか確認
+    const post = await prisma.post.findUnique({
+      where: { id: postId },
+    });
+
+    if (!post) {
+      return NextResponse.json(
+        { error: "指定された投稿が見つかりません" },
+        { status: 404 }
+      );
+    }
+
+    // トランザクションを使用して、関連するカテゴリーの関連付けも削除
+    await prisma.$transaction(async (tx) => {
+      // まず、PostCategoryの関連付けを削除
+      await tx.postCategory.deleteMany({
+        where: { postId },
+      });
+
+      // 次に、投稿自体を削除
+      await tx.post.delete({
+        where: { id: postId },
+      });
+    });
+
+    return NextResponse.json({ message: "投稿を削除しました" });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json(
+      { error: "投稿の削除に失敗しました" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(req: NextRequest) {
   const token = req.headers.get("Authorization") ?? "";
   const { data, error } = await supabase.auth.getUser(token);

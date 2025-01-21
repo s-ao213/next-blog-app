@@ -124,7 +124,7 @@ export default function EditPostPage() {
 
     try {
       const fileHash = await calculateMD5Hash(file);
-      const path = `private/${fileHash}`;
+      const path = `${fileHash}`; // ここを変更
       const { data, error } = await supabase.storage
         .from(bucketName)
         .upload(path, file, { upsert: true });

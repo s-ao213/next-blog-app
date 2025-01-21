@@ -9,6 +9,7 @@ import {
   faPlus,
 } from "@fortawesome/free-solid-svg-icons";
 import Link from "next/link";
+import { supabase } from "@/utils/supabase";
 
 type Post = {
   id: string;
@@ -66,8 +67,19 @@ const AdminPostsPage: React.FC = () => {
 
     setIsDeleting(true);
     try {
-      const response = await fetch(`/api/admin/posts/${postId}`, {
+      // セッションを取得
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error("認証が必要です");
+      }
+
+      const response = await fetch(`/api/admin/posts?id=${postId}`, {
         method: "DELETE",
+        headers: {
+          Authorization: session.access_token,
+        },
         cache: "no-store",
       });
 
@@ -75,7 +87,6 @@ const AdminPostsPage: React.FC = () => {
         throw new Error(`${response.status}: ${response.statusText}`);
       }
 
-      // 成功したら投稿一覧を再取得
       await fetchPosts();
     } catch (e) {
       const errorMsg =
@@ -86,7 +97,6 @@ const AdminPostsPage: React.FC = () => {
       setIsDeleting(false);
     }
   };
-
   if (isLoading) {
     return (
       <div className="text-gray-500">
