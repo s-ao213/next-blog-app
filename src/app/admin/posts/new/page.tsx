@@ -2,12 +2,13 @@
 import { useState, useEffect, ChangeEvent, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faSpinner } from "@fortawesome/free-solid-svg-icons";
+import { faSpinner, faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import { twMerge } from "tailwind-merge";
 import { useAuth } from "@/app/_hooks/useAuth";
 import CryptoJS from "crypto-js";
 import Image from "next/image";
 import { supabase } from "@/utils/supabase";
+import Link from "next/link";
 
 type CategoryApiResponse = {
   id: string;
@@ -176,7 +177,7 @@ const Page: React.FC = () => {
 
       const postResponse = await res.json();
       setIsSubmitting(false);
-      router.push(`/posts/${postResponse.id}`);
+      router.push("/admin/posts"); // この行を変更
     } catch (error) {
       const errorMsg =
         error instanceof Error
@@ -224,6 +225,18 @@ const Page: React.FC = () => {
 
   return (
     <main>
+      <div className="mb-6 flex items-center justify-between">
+        <div className="flex items-center">
+          <Link
+            href="/admin/posts"
+            className="mr-4 text-gray-600 hover:text-gray-900"
+          >
+            <FontAwesomeIcon icon={faArrowLeft} className="mr-1" />
+            戻る
+          </Link>
+          <h1 className="text-2xl font-bold">投稿の編集</h1>
+        </div>
+      </div>
       <div className="mb-4 text-2xl font-bold">投稿記事の新規作成</div>
 
       {isSubmitting && (
