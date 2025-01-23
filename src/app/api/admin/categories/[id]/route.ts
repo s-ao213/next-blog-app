@@ -38,7 +38,6 @@ export const PUT = async (req: NextRequest, routeParams: RouteParams) => {
   }
 };
 // ▲▲▲ 追加: ここまで ▲▲▲
-
 export const DELETE = async (req: NextRequest, routeParams: RouteParams) => {
   const token = req.headers.get("Authorization") ?? "";
   const { data, error } = await supabase.auth.getUser(token);
