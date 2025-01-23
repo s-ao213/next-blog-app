@@ -3,6 +3,9 @@ export type PostApiResponse = {
   title: string;
   content: string;
   coverImageKey: string;
+  shopName?: string;
+  businessHours?: string;
+  phoneNumber?: string;
   createdAt: string;
   categories: {
     category: {

@@ -55,6 +55,9 @@ const Page: React.FC = () => {
           title: rawPost.title,
           content: rawPost.content,
           coverImageKey: rawPost.coverImageKey,
+          shopName: rawPost.shopName || "",
+          businessHours: rawPost.businessHours || "",
+          phoneNumber: rawPost.phoneNumber || "",
           createdAt: rawPost.createdAt,
           categories: rawPost.categories.map(
             (categoryWrapper: { category: { id: string; name: string } }) => ({
@@ -63,6 +66,7 @@ const Page: React.FC = () => {
             })
           ),
         }));
+
         setPosts(processedPosts);
 
         // カテゴリを設定
