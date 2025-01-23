@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { twMerge } from "tailwind-merge";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faFish } from "@fortawesome/free-solid-svg-icons";
+import { faUtensils } from "@fortawesome/free-solid-svg-icons";
 import { supabase } from "@/utils/supabase"; // ◀ 追加
 import { useAuth } from "@/app/_hooks/useAuth"; // ◀ 追加
 import { useRouter } from "next/navigation"; // ◀ 追加
@@ -27,13 +27,13 @@ const Header: React.FC = () => {
             "text-lg font-bold text-white"
           )}
         >
-          <div>
+          <div style={{ color: "#FFD43B" }}>
             <Link href="/">
-              <FontAwesomeIcon icon={faFish} className="mr-1" />
-              BLOG
+              <FontAwesomeIcon icon={faUtensils} style={{ color: "#FFD43B" }} />
+              &nbsp; ラーメン日記
             </Link>
           </div>
-          <div className="flex gap-x-6">
+          <div className="flex gap-x-6" style={{ color: "#FFD43B" }}>
             {/* ▼ 追加 */}
             {!isLoading &&
               (session ? (
