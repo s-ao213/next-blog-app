@@ -14,6 +14,9 @@ export const GET = async (req: NextRequest) => {
         content: true,
         createdAt: true,
         coverImageKey: true, // ここを追加
+        shopName: true, // 追加
+        businessHours: true, // 追加
+        phoneNumber: true,
         categories: {
           select: {
             category: {

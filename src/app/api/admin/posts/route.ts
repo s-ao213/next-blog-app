@@ -9,8 +9,11 @@ export const revalidate = 0; // ◀ サーバサイドのキャッシュを無�
 type RequestBody = {
   title: string;
   content: string;
-  coverImageKey: string; // ◀ Changed from coverImageURL
+  coverImageKey: string;
   categoryIds: string[];
+  shopName?: string;
+  businessHours?: string;
+  phoneNumber?: string;
 };
 
 export async function GET(req: NextRequest) {
@@ -116,7 +119,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 401 });
   try {
     const requestBody: RequestBody = await req.json();
-    const { title, content, coverImageKey, categoryIds } = requestBody; // ◀ Changed from coverImageURL
+    const {
+      title,
+      content,
+      coverImageKey,
+      categoryIds,
+      shopName = "",
+      businessHours = "",
+      phoneNumber = "",
+    } = requestBody;
 
     const categories = await prisma.category.findMany({
       where: {
@@ -138,7 +149,10 @@ export async function POST(req: NextRequest) {
         data: {
           title,
           content,
-          coverImageKey, // ◀ Changed from coverImageURL
+          coverImageKey,
+          shopName,
+          businessHours,
+          phoneNumber,
           categories: {
             create: categoryIds.map((categoryId) => ({
               categoryId,
@@ -162,7 +176,7 @@ export async function POST(req: NextRequest) {
       title: newPost.title,
       content: newPost.content,
       coverImage: {
-        key: newPost.coverImageKey, // ◀ Changed from coverImageURL
+        key: newPost.coverImageKey,
         width: 800,
         height: 600,
       },
@@ -170,6 +184,9 @@ export async function POST(req: NextRequest) {
         id: pc.category.id,
         name: pc.category.name,
       })),
+      shopName: newPost.shopName,
+      businessHours: newPost.businessHours,
+      phoneNumber: newPost.phoneNumber,
       createdAt: newPost.createdAt.toISOString(),
       updatedAt: newPost.updatedAt.toISOString(),
     };

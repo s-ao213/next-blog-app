@@ -36,6 +36,9 @@ const PostSummary: React.FC<Props> = (props) => {
       </div>
       <Link href={`/posts/${post.id}`}>
         <div className="mb-1 text-lg font-bold">{post.title}</div>
+        {post.shopName && (
+          <div className="mb-1 text-sm text-gray-600">{post.shopName}</div>
+        )}
         <div
           className="line-clamp-3"
           dangerouslySetInnerHTML={{ __html: safeHTML }}

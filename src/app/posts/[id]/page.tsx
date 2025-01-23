@@ -92,6 +92,29 @@ const Page: React.FC = () => {
       <article className="space-y-6">
         <h1 className="text-3xl font-bold">{post.title}</h1>
 
+        {/* 店舗情報セクション */}
+        <div className="rounded-lg bg-gray-100 p-4">
+          <h2 className="mb-2 text-xl font-semibold">店舗情報</h2>
+          {post.shopName && (
+            <div className="mb-2 flex items-center">
+              <strong className="mr-2">店名:</strong>
+              <span>{post.shopName}</span>
+            </div>
+          )}
+          {post.businessHours && (
+            <div className="mb-2 flex items-center">
+              <strong className="mr-2">営業時間:</strong>
+              <span>{post.businessHours}</span>
+            </div>
+          )}
+          {post.phoneNumber && (
+            <div className="flex items-center">
+              <strong className="mr-2">電話番号:</strong>
+              <span>{post.phoneNumber}</span>
+            </div>
+          )}
+        </div>
+
         {imageError && (
           <div className="rounded-lg bg-red-50 p-4 text-red-500">
             {imageError}

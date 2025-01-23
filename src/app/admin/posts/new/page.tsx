@@ -49,6 +49,11 @@ const Page: React.FC = () => {
     SelectableCategory[] | null
   >(null);
 
+  // page.tsx内のuseState
+  const [shopName, setShopName] = useState("");
+  const [businessHours, setBusinessHours] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+
   useEffect(() => {
     if (!authLoading && !session) {
       router.push("/login");
@@ -270,7 +275,48 @@ const Page: React.FC = () => {
             required
           />
         </div>
-
+        <div className="space-y-1">
+          <label htmlFor="shopName" className="block font-bold">
+            店舗名
+          </label>
+          <input
+            type="text"
+            id="shopName"
+            name="shopName"
+            className="w-full rounded-md border-2 px-2 py-1"
+            value={shopName}
+            onChange={(e) => setShopName(e.target.value)}
+            placeholder="店舗名を入力してください"
+          />
+        </div>
+        <div className="space-y-1">
+          <label htmlFor="businessHours" className="block font-bold">
+            営業時間
+          </label>
+          <input
+            type="text"
+            id="businessHours"
+            name="businessHours"
+            className="w-full rounded-md border-2 px-2 py-1"
+            value={businessHours}
+            onChange={(e) => setBusinessHours(e.target.value)}
+            placeholder="営業時間を入力してください（例：10:00-20:00）"
+          />
+        </div>
+        <div className="space-y-1">
+          <label htmlFor="phoneNumber" className="block font-bold">
+            電話番号
+          </label>
+          <input
+            type="tel"
+            id="phoneNumber"
+            name="phoneNumber"
+            className="w-full rounded-md border-2 px-2 py-1"
+            value={phoneNumber}
+            onChange={(e) => setPhoneNumber(e.target.value)}
+            placeholder="電話番号を入力してください"
+          />
+        </div>
         <div className="space-y-1">
           <label htmlFor="content" className="block font-bold">
             本文
@@ -285,7 +331,6 @@ const Page: React.FC = () => {
             required
           />
         </div>
-
         <div className="space-y-1">
           <label htmlFor="coverImage" className="block font-bold">
             カバーイメージ
@@ -319,7 +364,6 @@ const Page: React.FC = () => {
             </div>
           )}
         </div>
-
         <div className="space-y-1">
           <div className="font-bold">タグ</div>
           <div className="flex flex-wrap gap-x-3.5">
@@ -341,7 +385,6 @@ const Page: React.FC = () => {
             )}
           </div>
         </div>
-
         <div className="flex justify-end">
           <button
             type="submit"

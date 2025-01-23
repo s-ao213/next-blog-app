@@ -16,8 +16,11 @@ type RouteParams = {
 type RequestBody = {
   title: string;
   content: string;
-  coverImageKey: string; // ◀ Changed from coverImageURL
+  coverImageKey: string;
   categoryIds: string[];
+  shopName: string;
+  businessHours: string;
+  phoneNumber: string;
 };
 
 export async function GET(req: NextRequest, routeParams: RouteParams) {
@@ -73,7 +76,15 @@ export async function PUT(req: NextRequest, routeParams: RouteParams) {
   try {
     const id = routeParams.params.id;
     const requestBody: RequestBody = await req.json();
-    const { title, content, coverImageKey, categoryIds } = requestBody; // ◀ Changed from coverImageURL
+    const {
+      title,
+      content,
+      coverImageKey,
+      categoryIds,
+      shopName,
+      businessHours,
+      phoneNumber,
+    } = requestBody;
 
     const categories = await prisma.category.findMany({
       where: {
@@ -100,7 +111,10 @@ export async function PUT(req: NextRequest, routeParams: RouteParams) {
         data: {
           title,
           content,
-          coverImageKey, // ◀ Changed from coverImageURL
+          coverImageKey,
+          shopName,
+          businessHours,
+          phoneNumber,
           categories: {
             create: categoryIds.map((categoryId) => ({
               categoryId,

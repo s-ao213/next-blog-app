@@ -22,6 +22,9 @@ model Post {
   title          String
   content        String
   coverImageKey  String
+  shopName       String  // 追加
+  businessHours  String  // 追加
+  phoneNumber    String  // 追加
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   categories     PostCategory[]

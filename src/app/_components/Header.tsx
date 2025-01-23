@@ -30,7 +30,7 @@ const Header: React.FC = () => {
           <div style={{ color: "#FFD43B" }}>
             <Link href="/">
               <FontAwesomeIcon icon={faUtensils} style={{ color: "#FFD43B" }} />
-              &nbsp; ラーメン日記
+              &nbsp; プリン旅
             </Link>
           </div>
           <div className="flex gap-x-6" style={{ color: "#FFD43B" }}>

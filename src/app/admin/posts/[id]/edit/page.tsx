@@ -24,8 +24,11 @@ type Post = {
   id: string;
   title: string;
   content: string;
-  coverImageKey: string; // ここを変更
+  coverImageKey: string;
   categories: Category[];
+  shopName?: string; // 追加
+  businessHours?: string; // 追加
+  phoneNumber?: string; // 追加
 };
 
 const calculateMD5Hash = async (file: File): Promise<string> => {
@@ -161,8 +164,11 @@ export default function EditPostPage() {
         body: JSON.stringify({
           title: formData.get("title"),
           content: formData.get("content"),
-          coverImageKey: coverImageKey, // ここを変更
+          coverImageKey: coverImageKey,
           categoryIds: selectedCategories,
+          shopName: formData.get("shopName"),
+          businessHours: formData.get("businessHours"),
+          phoneNumber: formData.get("phoneNumber"),
         }),
       });
 
@@ -226,6 +232,56 @@ export default function EditPostPage() {
             name="title"
             defaultValue={post.title}
             required
+            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
+        </div>
+
+        <div>
+          <label
+            htmlFor="shopName"
+            className="block text-sm font-medium text-gray-700"
+          >
+            店舗名
+          </label>
+          <input
+            type="text"
+            id="shopName"
+            name="shopName"
+            defaultValue={post.shopName || ""}
+            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
+        </div>
+
+        <div>
+          <label
+            htmlFor="businessHours"
+            className="block text-sm font-medium text-gray-700"
+          >
+            営業時間
+          </label>
+          <input
+            type="text"
+            id="businessHours"
+            name="businessHours"
+            defaultValue={post.businessHours || ""}
+            placeholder="例: 月-金 10:00-20:00"
+            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
+        </div>
+
+        <div>
+          <label
+            htmlFor="phoneNumber"
+            className="block text-sm font-medium text-gray-700"
+          >
+            電話番号
+          </label>
+          <input
+            type="tel"
+            id="phoneNumber"
+            name="phoneNumber"
+            defaultValue={post.phoneNumber || ""}
+            placeholder="例: 03-1234-5678"
             className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
         </div>
