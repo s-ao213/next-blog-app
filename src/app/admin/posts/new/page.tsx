@@ -354,8 +354,8 @@ const Page: React.FC = () => {
           {coverImagePreviewUrl && (
             <div className="mt-2">
               <Image
-                className="w-1/2 border-2 border-gray-300"
-                src={coverImagePreviewUrl} // ここを変更
+                className="w-full border-2 border-gray-300" // "w-1/2" を "w-full" に変更
+                src={coverImagePreviewUrl}
                 alt="プレビュー画像"
                 width={1024}
                 height={1024}
